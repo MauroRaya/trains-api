@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS trains (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  capacity INT NOT NULL,
+  active BOOLEAN NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+)
