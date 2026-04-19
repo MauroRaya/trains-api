@@ -1,98 +1,131 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Comparação de Uso de Memória: Abordagem Padrão vs Streaming
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 1. Contexto
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Este repositório foi criado para comparar o uso de memória entre duas abordagens de obtenção de dados:
 
-## Description
+- **Abordagem padrão**: retorna todos os dados carregados em memória de uma vez
+- **Abordagem com streaming**: processa os dados em fluxo (stream), sem carregar tudo na memória
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Essa comparação é especialmente relevante para APIs utilizadas com ferramentas como o Power BI, onde técnicas como paginação geralmente não são suportadas e há necessidade de lidar com grandes volumes de dados em uma única consulta.
 
-## Project setup
+O objetivo é avaliar como o uso de streams pode melhorar o desempenho e reduzir o consumo de memória em cenários de alta carga de dados.
+
+---
+
+## 2. Como utilizar Streams
+
+Esta implementação utiliza streaming no PostgreSQL para lidar com grandes volumes de dados de forma eficiente.
+
+### 2.1 Instale o pacote `pg-query-stream`
 
 ```bash
-$ npm install
+npm install pg-query-stream
 ```
 
-## Compile and run the project
+### 2.2 Importe a classe `QueryStream` do pacote `pg-query-stream` no topo do arquivo
+
+```typescript
+import QueryStream from 'pg-query-stream';
+```
+
+### 2.3 Crie uma instância da classe `QueryStream` com sua consulta
+
+```typescript
+const query = new QueryStream("SELECT * FROM sua_tabela");
+```
+
+### 2.4 Execute a stream no cliente do PostgreSQL
+
+```typescript
+this.client.query(query);
+```
+
+### Exemplo
+
+```typescript
+import { Inject } from '@nestjs/common';
+import { Client } from 'pg';
+import QueryStream from 'pg-query-stream';
+
+export class Repositorio {
+  constructor(@Inject("PG_CLIENT") private readonly client: Client) {}
+
+  get(): QueryStream {
+    const query = new QueryStream("SELECT * FROM sua_tabela");
+    return this.client.query(query);
+  }
+}
+```
+
+### 2.5 Instale o pacote `JSONStream`
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install JSONStream
 ```
 
-## Run tests
+### 2.6 Importar tipo Response e JSONStream no topo do arquivo
+
+```typescript
+import type { Response } from 'express';
+import * as JSONStream from 'JSONStream';
+```
+
+### 2.7 Configurar o controller com a resposta
+
+```typescript
+@Get()
+get(@Res() res: Response) {}
+```
+
+### 2.8 Fazer pipe para JSON
+
+```typescript
+stream.pipe(JSONStream.stringify())
+```
+
+### 2.9 Fazer pipe para a resposta
+
+```typescript
+stream.pipe(res)
+```
+
+### Exemplo
+
+```typescript
+import { Controller, Get, Res } from '@nestjs/common';
+import { Service } from './service';
+import type { Response } from 'express';
+import * as JSONStream from 'JSONStream';
+
+@Controller()
+export class Controller {
+  constructor(private readonly service: Service) {}
+
+  @Get()
+  get(@Res() res: Response) {
+    const stream = this.service.get();
+
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    stream
+      .pipe(JSONStream.stringify())
+      .pipe(res);
+  }
+}
+```
+
+---
+
+## 3. Observabilidade
+
+Esse repositório possui um arquivo `docker-compose.yaml` na raiz do projeto.  
+Ele possui serviços como: postgres, node-exporter, prometheus e grafana.  
+Caso deseje observar a diferença de memória, o grafana está disponivel em:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+http://localhost:3000/
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Username: admin  
+Password: admin
