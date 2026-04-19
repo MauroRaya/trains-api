@@ -35,7 +35,7 @@ import QueryStream from 'pg-query-stream';
 const query = new QueryStream("SELECT * FROM sua_tabela");
 ```
 
-### 2.4 Execute a stream no cliente do PostgreSQL
+### 2.4 Execute a stream no client do pacote `pg`
 
 ```typescript
 this.client.query(query);
@@ -64,27 +64,27 @@ export class Repositorio {
 npm install JSONStream
 ```
 
-### 2.6 Importar tipo Response e JSONStream no topo do arquivo
+### 2.6 Importe o tipo Response e JSONStream no topo do arquivo
 
 ```typescript
 import type { Response } from 'express';
 import * as JSONStream from 'JSONStream';
 ```
 
-### 2.7 Configurar o controller com a resposta
+### 2.7 Configure o controller com a resposta
 
 ```typescript
 @Get()
 get(@Res() res: Response) {}
 ```
 
-### 2.8 Fazer pipe para JSON
+### 2.8 Faça o pipe para JSON
 
 ```typescript
 stream.pipe(JSONStream.stringify())
 ```
 
-### 2.9 Fazer pipe para a resposta
+### 2.9 Faça o pipe para a resposta
 
 ```typescript
 stream.pipe(res)
