@@ -17,6 +17,7 @@ export class TrainController {
     const stream = this.trainService.getTrainsStream();
 
     res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
 
     stream
       .pipe(JSONStream.stringify())
