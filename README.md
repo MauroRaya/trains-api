@@ -107,6 +107,7 @@ export class Controller {
     const stream = this.service.get();
 
     res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
 
     stream
       .pipe(JSONStream.stringify())
