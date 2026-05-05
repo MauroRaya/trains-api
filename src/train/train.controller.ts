@@ -2,6 +2,7 @@ import { Controller, Get, Param, Post, Res } from '@nestjs/common';
 import { TrainService } from './train.service';
 import type { Response } from 'express';
 import * as JSONStream from 'JSONStream';
+import { pipeline } from 'stream/promises';
 
 @Controller("train")
 export class TrainController {
@@ -13,15 +14,13 @@ export class TrainController {
   }
 
   @Get("stream")
-  getTrainsStream(@Res() res: Response) {
+  async getTrainsStream(@Res() res: Response) {
     const stream = this.trainService.getTrainsStream();
 
     res.setHeader('Transfer-Encoding', 'chunked');
     res.setHeader('X-Content-Type-Options', 'nosniff');
 
-    stream
-      .pipe(JSONStream.stringify())
-      .pipe(res);
+    await pipeline(stream, JSONStream.stringify(), res);
   }
 
   @Post(":amount")
