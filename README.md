@@ -97,6 +97,7 @@ import { Controller, Get, Res } from '@nestjs/common';
 import { Service } from './service';
 import type { Response } from 'express';
 import * as JSONStream from 'JSONStream';
+import { pipeline } from 'stream/promises';
 
 @Controller()
 export class Controller {
@@ -109,9 +110,7 @@ export class Controller {
     res.setHeader('Transfer-Encoding', 'chunked');
     res.setHeader('X-Content-Type-Options', 'nosniff');
 
-    stream
-      .pipe(JSONStream.stringify())
-      .pipe(res);
+    await pipeline(stream, JSONStream.stringify(), res);
   }
 }
 ```
