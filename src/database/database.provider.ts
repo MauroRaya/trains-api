@@ -5,7 +5,7 @@ export const DatabaseProvider = {
 
   useFactory: async () => {
     const client = new Client({
-      host: 'localhost',
+      host: 'postgres',
       port: 5432,
       user: 'postgres',
       password: 'postgres',
